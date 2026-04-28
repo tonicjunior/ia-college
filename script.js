@@ -802,7 +802,7 @@ function renderResultView(unit, course) {
   if (nextIdx >= 0) {
     html += `<button class="btn btn-primary" id="next-unit-btn">Próxima Unidade →</button>`;
   }
-  if (course.completed) {
+  if (course.completed && passed) {
     html += `<button class="btn btn-success" id="show-cert-btn">🎓 Ver Certificado</button>`;
   }
   html += `</div>`;
