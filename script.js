@@ -8,10 +8,22 @@ const TUTORIAL_KEY = "iaEad_v1_tutorial_shown";
 const THEME_KEY = "iaAcademy_theme_setting";
 const ZOOM_KEY = "iaAcademy_zoom_level";
 const API_MODE_KEY = "iaAcademy_api_mode";
-const ASSISTANT_KEY = "iaAcademy_assistant_enabled";
 const API_BACK_END = "https://academy01.app.n8n.cloud/webhook/academy";
 const SHOW_SUPPORT = true;
 
+const LANGUAGE_PREFS_KEY = "iaAcademy_lang_prefs";
+
+function getLangPrefs() {
+  const raw = localStorage.getItem(LANGUAGE_PREFS_KEY);
+  return raw
+    ? JSON.parse(raw)
+    : { questionsInContentLang: true, answersInContentLang: true };
+}
+function saveLangPrefs(prefs) {
+  localStorage.setItem(LANGUAGE_PREFS_KEY, JSON.stringify(prefs));
+}
+
+let _pendingPromptContext = null;
 let appState = {};
 let currentZoomLevel = 1;
 let onManualResponseSubmit = null;
@@ -21,105 +33,151 @@ let generatedCertificateName = null;
 
 // ─── PROMPTS ─────────────────────────────────────────────────────────────────
 const PROMPTS = {
-  // Gera 20 questões de simulado (15 MC + 5 discursivas) com base no conteúdo da unidade
-  SIMULADO: `Você é um avaliador acadêmico experiente especializado em provas de EAD universitário.
-Sua missão é criar um simulado completo, desafiador e bem elaborado com base EXCLUSIVAMENTE no conteúdo fornecido pelo aluno.
+  SIMULADO: (langPrefs = {}) => {
+    const qLang =
+      langPrefs.questionsInContentLang !== false
+        ? "As PERGUNTAS devem ser escritas no mesmo idioma do conteudo fornecido pelo aluno."
+        : "As PERGUNTAS devem ser escritas em Portugues Brasileiro, independentemente do idioma do conteudo.";
+    const aLang =
+      langPrefs.answersInContentLang !== false
+        ? "As RESPOSTAS ESPERADAS (expectedKeyPoints e sampleAnswer) devem ser no mesmo idioma do conteudo."
+        : "As RESPOSTAS ESPERADAS (expectedKeyPoints e sampleAnswer) devem ser em Portugues Brasileiro.";
+    return (
+      "Voce e um avaliador academico experiente especializado em provas de EAD universitario.\n" +
+      "Sua missao e criar um simulado completo, desafiador e bem elaborado com base EXCLUSIVAMENTE no conteudo fornecido pelo aluno.\n\n" +
+      "ATENCAO CRITICA - JSON PURO:\n" +
+      "- A resposta DEVE ser um objeto JSON puro e valido. ZERO texto externo, ZERO blocos markdown, ZERO backticks.\n" +
+      "- NUNCA use caracteres invisiveis, espacos de largura zero, quebras de linha especiais (\\u2028, \\u2029) ou qualquer caractere Unicode de controle dentro das strings JSON.\n" +
+      "- Todas as strings devem conter apenas texto legivel. O JSON sera analisado diretamente - qualquer caractere invalido quebra a ferramenta.\n" +
+      '- Escape corretamente: aspas com \\\\", quebras de linha com \\\\n, barras com \\\\\\\\.\n\n' +
+      "IDIOMA:\n" +
+      "- " +
+      qLang +
+      "\n" +
+      "- " +
+      aLang +
+      "\n\n" +
+      "ESTRUTURA OBRIGATORIA:\n" +
+      JSON.stringify(
+        {
+          unitTitle: "Titulo sugerido para a unidade com base no conteudo",
+          questions: [
+            {
+              id: 1,
+              type: "multiple_choice",
+              question: "Texto da pergunta",
+              options: [
+                { id: "A", text: "..." },
+                { id: "B", text: "..." },
+                { id: "C", text: "..." },
+                { id: "D", text: "..." },
+              ],
+              correctAnswer: "B",
+              cognitiveLevel: "recall|comprehension|application|analysis",
+              explanation:
+                "Por que esta e a resposta correta, explicado brevemente.",
+            },
+            {
+              id: 16,
+              type: "discursive",
+              question: "Texto da pergunta discursiva",
+              expectedKeyPoints: [
+                "ponto 1 esperado",
+                "ponto 2 esperado",
+                "ponto 3 esperado",
+              ],
+              keyPointWeights: [0.4, 0.35, 0.25],
+              sampleAnswer:
+                "Resposta modelo completa e bem elaborada para referencia da IA avaliadora.",
+            },
+          ],
+        },
+        null,
+        2,
+      ) +
+      "\n\n" +
+      "DISTRIBUICAO OBRIGATORIA DAS 20 QUESTOES:\n" +
+      "- Questoes 1-15: MULTIPLA ESCOLHA (type: 'multiple_choice')\n" +
+      "- Questoes 16-20: DISCURSIVAS (type: 'discursive')\n\n" +
+      "DISTRIBUICAO COGNITIVA DAS 15 MULTIPLA ESCOLHA:\n" +
+      "- 2 de RECALL: identificacao direta de conceito ou definicao\n" +
+      "- 4 de COMPREENSAO: o aluno explica, distingue ou reformula\n" +
+      "- 5 de APLICACAO: cenario novo que exige aplicar o conhecimento estudado\n" +
+      "- 4 de ANALISE: identificar causas, comparar abordagens, avaliar decisoes\n\n" +
+      "REGRAS DE QUALIDADE:\n" +
+      "1. BASE: use APENAS informacoes presentes no conteudo fornecido. Nao invente dados.\n" +
+      "2. DISTRATORES: cada distrator incorreto deve representar um erro de raciocinio real. Devem ser plausíveis para quem nao estudou bem.\n" +
+      "3. DISCURSIVAS: cada questao deve exigir resposta com pelo menos 3 pontos. Em keyPointWeights, forneça pesos decimais que somam 1.0, indicando a importancia relativa de cada ponto.\n" +
+      "4. NIVEL: equivalente a prova de faculdade EAD. Nao infantilize.\n" +
+      "5. VARIEDADE: comparacoes, casos hipoteticos, analise de situacoes, erro de raciocinio para identificar.\n\n" +
+      "INPUT QUE VOCE RECEBERA:\n" +
+      '{ "courseName": "...", "unitNumber": N, "unitContent": "conteudo completo colado pelo aluno" }'
+    );
+  },
 
-A resposta DEVE ser um objeto JSON puro. Nenhum texto externo, nenhum bloco markdown.
-
-ESTRUTURA OBRIGATÓRIA:
-{
-  "unitTitle": "Título sugerido para a unidade com base no conteúdo",
-  "questions": [
-    {
-      "id": 1,
-      "type": "multiple_choice",
-      "question": "Texto da pergunta",
-      "options": [
-        {"id": "A", "text": "..."},
-        {"id": "B", "text": "..."},
-        {"id": "C", "text": "..."},
-        {"id": "D", "text": "..."}
-      ],
-      "correctAnswer": "B",
-      "cognitiveLevel": "recall|comprehension|application|analysis",
-      "explanation": "Por que esta é a resposta correta, explicado brevemente."
-    },
-    {
-      "id": 16,
-      "type": "discursive",
-      "question": "Texto da pergunta discursiva",
-      "expectedKeyPoints": ["ponto 1 esperado", "ponto 2 esperado", "ponto 3 esperado"],
-      "sampleAnswer": "Resposta modelo completa e bem elaborada para referência da IA avaliadora."
-    }
-  ]
-}
-
-DISTRIBUIÇÃO OBRIGATÓRIA DAS 20 QUESTÕES:
-- Questões 1-15: MÚLTIPLA ESCOLHA (type: "multiple_choice")
-- Questões 16-20: DISCURSIVAS (type: "discursive")
-
-DISTRIBUIÇÃO COGNITIVA DAS 15 MÚLTIPLA ESCOLHA:
-- 2 de RECALL: identificação direta de conceito ou definição
-- 4 de COMPREENSÃO: o aluno explica, distingue ou reformula
-- 5 de APLICAÇÃO: cenário novo que exige aplicar o conhecimento estudado
-- 4 de ANÁLISE: identificar causas, comparar abordagens, avaliar decisões
-
-REGRAS DE QUALIDADE:
-1. BASE: use APENAS informações presentes no conteúdo fornecido. Não invente dados.
-2. DISTRATORES: cada distrator incorreto deve representar um erro de raciocínio real (não absurdos). Os distratores devem ser plausíveis para quem não estudou bem.
-3. DISCURSIVAS: cada questão discursiva deve exigir resposta estruturada com pelo menos 3 pontos relevantes. Liste em expectedKeyPoints os pontos mínimos esperados.
-4. NÍVEL: o simulado deve ser equivalente a uma prova de faculdade EAD. Não infantilize.
-5. VARIEDADE: varie o formato — comparações, casos hipotéticos, análise de situações, erro de raciocínio para identificar.
-
-INPUT QUE VOCÊ RECEBERÁ:
-{ "courseName": "...", "unitNumber": N, "unitContent": "conteúdo completo colado pelo aluno" }`,
-
-  // Avalia respostas discursivas do aluno comparando com a resposta modelo
-  AVALIADOR_DISCURSIVO: `Você é um professor avaliador universitário. Sua missão é avaliar as respostas discursivas de um aluno com rigor e justiça, baseando-se exclusivamente no conteúdo de referência fornecido.
-
-A resposta DEVE ser um objeto JSON puro. Nenhum texto externo.
-
-ESTRUTURA:
-{
-  "evaluations": [
-    {
-      "questionId": 16,
-      "score": 7,
-      "maxScore": 10,
-      "status": "approved|partial|reproved",
-      "feedback": "Feedback detalhado sobre o que o aluno acertou e o que faltou na resposta.",
-      "missingPoints": ["ponto que faltou 1", "ponto que faltou 2"]
-    }
-  ],
-  "totalDiscursiveScore": 35,
-  "maxDiscursiveScore": 50,
-  "overallDiscursiveFeedback": "Comentário geral sobre o desempenho nas discursivas."
-}
-
-REGRAS DE AVALIAÇÃO:
-1. Cada questão discursiva vale 10 pontos. Total discursivo: 50 pontos.
-2. status "approved" = 7-10 pontos (aluno cobriu os pontos principais).
-3. status "partial" = 4-6 pontos (aluno cobriu parcialmente, faltam pontos relevantes).
-4. status "reproved" = 0-3 pontos (resposta superficial, errada ou fora do tema).
-5. Compare a resposta do aluno com expectedKeyPoints e sampleAnswer para avaliar.
-6. O feedback deve ser construtivo: aponte o que o aluno acertou ANTES de apontar o que faltou.
-7. Não penalize por ortografia ou gramática, apenas pelo conteúdo conceitual.
-
-INPUT QUE VOCÊ RECEBERÁ:
-{
-  "learningContext": "conteúdo original da unidade",
-  "discursiveAnswers": [
-    {
-      "questionId": 16,
-      "question": "texto da questão",
-      "studentAnswer": "resposta do aluno",
-      "expectedKeyPoints": [...],
-      "sampleAnswer": "resposta modelo"
-    }
-  ]
-}`,
+  AVALIADOR_DISCURSIVO: (langPrefs = {}) => {
+    const feedbackLang =
+      langPrefs.answersInContentLang !== false
+        ? "O feedback deve ser escrito no mesmo idioma do conteudo/questao."
+        : "O feedback deve ser escrito em Portugues Brasileiro.";
+    return (
+      "Voce e um professor avaliador universitario. Sua missao e avaliar as respostas discursivas de um aluno com rigor e justica, baseando-se exclusivamente no conteudo de referencia fornecido.\n\n" +
+      "ATENCAO CRITICA - JSON PURO:\n" +
+      "- A resposta DEVE ser um objeto JSON puro e valido. ZERO texto externo, ZERO blocos markdown, ZERO backticks.\n" +
+      "- NUNCA use caracteres invisiveis, espacos de largura zero, quebras de linha especiais (\\u2028, \\u2029) ou qualquer caractere Unicode de controle dentro das strings JSON.\n" +
+      "- O JSON sera analisado diretamente - qualquer caractere invalido quebra a ferramenta.\n\n" +
+      "IDIOMA DO FEEDBACK: " +
+      feedbackLang +
+      "\n\n" +
+      "ESTRUTURA:\n" +
+      JSON.stringify(
+        {
+          evaluations: [
+            {
+              questionId: 16,
+              score: 7,
+              maxScore: 10,
+              status: "approved|partial|reproved",
+              feedback:
+                "Feedback detalhado sobre o que o aluno acertou e o que faltou na resposta.",
+              missingPoints: ["ponto que faltou 1", "ponto que faltou 2"],
+            },
+          ],
+          totalDiscursiveScore: 35,
+          maxDiscursiveScore: 50,
+          overallDiscursiveFeedback:
+            "Comentario geral sobre o desempenho nas discursivas.",
+        },
+        null,
+        2,
+      ) +
+      "\n\n" +
+      "SISTEMA DE PONTUACAO PONDERADA:\n" +
+      "- Cada questao discursiva vale 10 pontos no total.\n" +
+      "- Cada questao possui expectedKeyPoints e keyPointWeights (pesos decimais que somam 1.0).\n" +
+      "- Para cada ponto-chave, avalie se o aluno o cobriu: completamente (100% do peso), parcialmente (50% do peso) ou nao cobriu (0%).\n" +
+      "- Some os pontos ponderados para obter a nota (0-10). Arredonde para o inteiro mais proximo.\n" +
+      "- Exemplo: pesos [0.4, 0.35, 0.25], cobriu completamente o 1o, parcialmente o 2o e nao cobriu o 3o: 10*(0.4*1 + 0.35*0.5 + 0.25*0) = 5.75 => 6.\n\n" +
+      "STATUS por nota final:\n" +
+      "- 'approved': 7-10 pontos.\n" +
+      "- 'partial': 4-6 pontos.\n" +
+      "- 'reproved': 0-3 pontos.\n\n" +
+      "REGRAS DE AVALIACAO:\n" +
+      "1. Priorize os pontos de maior peso - eles representam os conceitos centrais da questao.\n" +
+      "2. O feedback deve ser construtivo: aponte o que o aluno acertou ANTES de apontar o que faltou.\n" +
+      "3. Nao penalize por ortografia ou gramatica, apenas pelo conteudo conceitual.\n" +
+      "4. Compare a resposta do aluno com expectedKeyPoints e sampleAnswer para avaliar.\n" +
+      "5. totalDiscursiveScore = soma dos scores. maxDiscursiveScore = 10 x numero de questoes discursivas.\n\n" +
+      "INPUT QUE VOCE RECEBERA:\n" +
+      '{\n  "learningContext": "conteudo original da unidade",\n  "discursiveAnswers": [\n    {\n      "questionId": 16,\n      "question": "texto da questao",\n      "studentAnswer": "resposta do aluno",\n      "expectedKeyPoints": [...],\n      "keyPointWeights": [...],\n      "sampleAnswer": "resposta modelo"\n    }\n  ]\n}'
+    );
+  },
 };
+
+function getPrompt(requestType, langPrefs) {
+  const p = PROMPTS[requestType];
+  return typeof p === "function" ? p(langPrefs || getLangPrefs()) : p;
+}
 
 const PROMPT_TITLES = {
   SIMULADO: "Gerando Simulado da Unidade...",
@@ -185,11 +243,11 @@ function applyTheme(theme) {
   if (theme === "light") {
     document.documentElement.classList.add("light");
     const ts = $("#theme-switch");
-    if (ts) ts.checked = true;
+    if (ts) ts.checked = false;
   } else {
     document.documentElement.classList.remove("light");
     const ts = $("#theme-switch");
-    if (ts) ts.checked = false;
+    if (ts) ts.checked = true;
   }
 }
 function applyZoom() {
@@ -210,9 +268,13 @@ function initSettings() {
   if (zoom) currentZoomLevel = parseFloat(zoom);
   applyZoom();
   updateModeLabels();
-  const assistEnabled = localStorage.getItem(ASSISTANT_KEY) === "true";
-  const as = $("#assistant-switch");
-  if (as) as.checked = assistEnabled;
+
+  // Inicializa toggles de idioma
+  const langPrefs = getLangPrefs();
+  const tq = $("#lang-questions-switch");
+  if (tq) tq.checked = langPrefs.questionsInContentLang !== false;
+  const ta = $("#lang-answers-switch");
+  if (ta) ta.checked = langPrefs.answersInContentLang !== false;
 }
 function updateModeLabels() {
   const isApi = localStorage.getItem(API_MODE_KEY) === "true";
@@ -316,7 +378,14 @@ async function handleRegisterSubmit() {
   if (isSubmitting) return;
   const name = $("#reg-course-name").value.trim();
   if (!name) {
-    alert("Informe o nome da disciplina.");
+    await showConfirmationModal(
+      "Campo obrigatório",
+      "Informe o nome da disciplina.",
+      {
+        confirmText: "OK",
+        showCancel: false,
+      },
+    );
     return;
   }
   const count = parseInt($("#reg-units-count").value);
@@ -324,7 +393,11 @@ async function handleRegisterSubmit() {
   for (let i = 1; i <= count; i++) {
     const content = ($(`#unit-content-${i}`)?.value || "").trim();
     if (!content) {
-      alert(`Preencha o conteúdo da Unidade ${i}.`);
+      await showConfirmationModal(
+        "Campo obrigatório",
+        `Preencha o conteúdo da Unidade ${i}.`,
+        { confirmText: "OK", showCancel: false },
+      );
       return;
     }
     units.push({
@@ -334,13 +407,19 @@ async function handleRegisterSubmit() {
       simulado: null,
       completed: false,
       result: null,
+      draftAnswers: {},
     });
   }
+
+  if (localStorage.getItem(API_MODE_KEY) === "true") {
+    showSupportModal();
+    return;
+  }
+
   isSubmitting = true;
   $("#register-submit-btn").disabled = true;
   $("#register-modal").classList.add("hidden");
 
-  // Generate simulado for each unit sequentially
   const courseId = "course-" + Date.now();
   const course = {
     id: courseId,
@@ -354,7 +433,8 @@ async function handleRegisterSubmit() {
   appState.activeCourseId = courseId;
   saveState();
 
-  // Generate all simulados
+  const langPrefs = getLangPrefs();
+
   for (let i = 0; i < units.length; i++) {
     const unit = units[i];
     const payload = {
@@ -364,6 +444,7 @@ async function handleRegisterSubmit() {
     };
     await processRequest("SIMULADO", {
       history: [{ role: "user", parts: [{ text: JSON.stringify(payload) }] }],
+      langPrefs,
       onSuccess: (data) => {
         unit.title = data.unitTitle || `Unidade ${unit.number}`;
         unit.simulado = data.questions;
@@ -374,8 +455,9 @@ async function handleRegisterSubmit() {
 
   isSubmitting = false;
   $("#register-submit-btn").disabled = false;
-  renderDashboard();
-  setTimeout(() => selectCourse(courseId), 200);
+
+  // Redireciona direto para o curso recém-criado
+  selectCourse(courseId);
 }
 
 // ─── SIMULADO SCREEN ─────────────────────────────────────────────────────────
@@ -465,19 +547,54 @@ function renderUnitView() {
   }
 
   if (!unit.simulado) {
+    const isApiMode = localStorage.getItem(API_MODE_KEY) === "true";
     content.innerHTML = `
       <div class="sim-header">
         <div class="sim-breadcrumb">${course.name} <span>›</span> Unidade ${unit.number}</div>
         <h1 class="sim-title">${unit.title}</h1>
       </div>
-      <div class="loading-card">
-        <div class="spinner"></div>
-        <p>Gerando o simulado desta unidade...</p>
+      <div class="unit-detail-card" style="text-align:center;padding:2.5rem 2rem;">
+        <div style="font-size:2.5rem;margin-bottom:1rem;">📋</div>
+        <h3 style="margin-bottom:0.5rem;">Simulado não gerado ainda</h3>
+        <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.5rem;">
+          ${
+            isApiMode
+              ? "O modo API está ativo. Para gerar simulados, apoie o projeto."
+              : "Clique abaixo para gerar as questões desta unidade via Modo Manual."
+          }
+        </p>
+        <button class="btn btn-primary" id="gen-unit-simulado-btn">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>
+          </svg>
+          ${isApiMode ? "Apoiar o Projeto" : "Gerar Simulado desta Unidade"}
+        </button>
       </div>`;
+    $("#gen-unit-simulado-btn").onclick = async () => {
+      if (localStorage.getItem(API_MODE_KEY) === "true") {
+        showSupportModal();
+        return;
+      }
+      const langPrefs = getLangPrefs();
+      const payload = {
+        courseName: course.name,
+        unitNumber: unit.number,
+        unitContent: unit.content,
+      };
+      await processRequest("SIMULADO", {
+        history: [{ role: "user", parts: [{ text: JSON.stringify(payload) }] }],
+        langPrefs,
+        onSuccess: (data) => {
+          unit.title = data.unitTitle || `Unidade ${unit.number}`;
+          unit.simulado = data.questions;
+          saveState();
+          renderSimuladoScreen();
+        },
+      });
+    };
     return;
   }
 
-  // Unit ready — show start screen
   content.innerHTML = `
     <div class="sim-header">
       <div class="sim-breadcrumb">${course.name} <span>›</span> Unidade ${unit.number}</div>
@@ -510,6 +627,9 @@ function renderQuizForm(unit, course) {
   const questions = unit.simulado;
   const total = questions.length;
 
+  // Garante o objeto de rascunho
+  if (!unit.draftAnswers) unit.draftAnswers = {};
+
   let html = `
     <div class="sim-header">
       <div class="sim-breadcrumb">${course.name} <span>›</span> ${unit.title}</div>
@@ -521,7 +641,7 @@ function renderQuizForm(unit, course) {
     </div>
     <form id="quiz-form">`;
 
-  questions.forEach((q, i) => {
+  questions.forEach((q) => {
     const isDisc = q.type === "discursive";
     html += `
       <div class="question-card ${isDisc ? "discursive" : "multipla"}" id="qcard-${q.id}">
@@ -532,13 +652,17 @@ function renderQuizForm(unit, course) {
         <div class="question-text">${q.question}</div>`;
 
     if (isDisc) {
-      html += `<textarea class="discursive-answer" name="disc_${q.id}" id="disc_${q.id}" placeholder="Escreva sua resposta aqui. Seja claro(a) e aborde os pontos principais do conteúdo..." rows="5"></textarea>`;
+      const savedText = unit.draftAnswers[`disc_${q.id}`] || "";
+      // value via atributo não funciona bem para textarea no innerHTML; usamos data-attr
+      html += `<textarea class="discursive-answer" name="disc_${q.id}" id="disc_${q.id}" placeholder="Escreva sua resposta aqui. Seja claro(a) e aborde os pontos principais do conteúdo..." rows="5" data-saved="${encodeURIComponent(savedText)}"></textarea>`;
     } else {
+      const savedMC = unit.draftAnswers[`mc_${q.id}`] || null;
       html += `<div class="options-list">`;
       q.options.forEach((opt) => {
+        const checked = savedMC === opt.id ? "checked" : "";
         html += `
-          <label class="option-item" id="opt-${q.id}-${opt.id}">
-            <input type="radio" name="mc_${q.id}" value="${opt.id}" />
+          <label class="option-item${savedMC === opt.id ? " selected" : ""}" id="opt-${q.id}-${opt.id}">
+            <input type="radio" name="mc_${q.id}" value="${opt.id}" ${checked} />
             <span class="option-letter">${opt.id}</span>
             <span class="option-text">${opt.text}</span>
           </label>`;
@@ -560,19 +684,46 @@ function renderQuizForm(unit, course) {
 
   content.innerHTML = html;
 
-  // Track progress as user answers
+  // Restaura os valores das textareas (necessário após innerHTML)
+  questions
+    .filter((q) => q.type === "discursive")
+    .forEach((q) => {
+      const ta = $(`#disc_${q.id}`);
+      if (ta) ta.value = decodeURIComponent(ta.dataset.saved || "");
+    });
+
+  // Salva rascunho MC em tempo real
   const form = $("#quiz-form");
-  form.addEventListener("change", () => updateQuizProgress(questions));
-  // Option click styling
   form.addEventListener("change", (e) => {
     if (e.target.type === "radio") {
+      unit.draftAnswers[e.target.name] = e.target.value;
+      saveState();
+      // Atualiza estilo de seleção
       const name = e.target.name;
       $$(`input[name="${name}"]`).forEach((inp) => {
         const lbl = inp.closest(".option-item");
         if (lbl) lbl.classList.toggle("selected", inp.checked);
       });
     }
+    updateQuizProgress(questions);
   });
+
+  // Salva rascunho discursivas em tempo real (debounce leve)
+  let discSaveTimer = null;
+  questions
+    .filter((q) => q.type === "discursive")
+    .forEach((q) => {
+      const ta = $(`#disc_${q.id}`);
+      if (!ta) return;
+      ta.addEventListener("input", () => {
+        unit.draftAnswers[`disc_${q.id}`] = ta.value;
+        clearTimeout(discSaveTimer);
+        discSaveTimer = setTimeout(() => saveState(), 500);
+      });
+    });
+
+  // Progresso inicial (para questões já respondidas)
+  updateQuizProgress(questions);
 
   $("#submit-quiz-btn").onclick = () =>
     handleQuizSubmit(unit, course, questions);
@@ -600,17 +751,23 @@ function updateQuizProgress(questions) {
 
 // ─── QUIZ SUBMIT ─────────────────────────────────────────────────────────────
 async function handleQuizSubmit(unit, course, questions) {
-  // Validate all answered
   const mcQuestions = questions.filter((q) => q.type === "multiple_choice");
   const discQuestions = questions.filter((q) => q.type === "discursive");
+
   let unanswered = [];
   mcQuestions.forEach((q) => {
-    if (!$(`input[name="mc_${q.id}"]:checked`)) unanswered.push(q.id);
+    const fromDom = $(`input[name="mc_${q.id}"]:checked`);
+    const fromDraft = unit.draftAnswers && unit.draftAnswers[`mc_${q.id}`];
+    if (!fromDom && !fromDraft) unanswered.push(q.id);
   });
   discQuestions.forEach((q) => {
     const el = $(`#disc_${q.id}`);
-    if (!el || el.value.trim().length < 5) unanswered.push(q.id);
+    const fromDom = el ? el.value.trim() : "";
+    const fromDraft =
+      (unit.draftAnswers && unit.draftAnswers[`disc_${q.id}`]) || "";
+    if (fromDom.length < 5 && fromDraft.length < 5) unanswered.push(q.id);
   });
+
   if (unanswered.length > 0) {
     const confirmed = await showConfirmationModal(
       "Questões sem resposta",
@@ -620,12 +777,14 @@ async function handleQuizSubmit(unit, course, questions) {
     if (!confirmed) return;
   }
 
-  // Collect MC answers and score immediately
+  // Coleta MC — prioriza DOM, cai no rascunho
   const mcResults = [];
   let mcCorrect = 0;
   mcQuestions.forEach((q) => {
     const selected = $(`input[name="mc_${q.id}"]:checked`);
-    const answer = selected ? selected.value : null;
+    const answer = selected
+      ? selected.value
+      : (unit.draftAnswers && unit.draftAnswers[`mc_${q.id}`]) || null;
     const correct = answer === q.correctAnswer;
     if (correct) mcCorrect++;
     mcResults.push({
@@ -636,20 +795,23 @@ async function handleQuizSubmit(unit, course, questions) {
     });
   });
 
-  // Collect discursive answers
+  // Coleta discursivas — prioriza DOM, cai no rascunho
   const discAnswers = [];
   discQuestions.forEach((q) => {
     const el = $(`#disc_${q.id}`);
+    const studentAnswer = el
+      ? el.value.trim()
+      : (unit.draftAnswers && unit.draftAnswers[`disc_${q.id}`]) || "";
     discAnswers.push({
       questionId: q.id,
       question: q.question,
-      studentAnswer: el ? el.value.trim() : "",
+      studentAnswer,
       expectedKeyPoints: q.expectedKeyPoints || [],
+      keyPointWeights: q.keyPointWeights || [],
       sampleAnswer: q.sampleAnswer || "",
     });
   });
 
-  // Show partial result while evaluating discursive
   showLoadingModal(
     "Avaliando Respostas Discursivas...",
     "A IA está analisando suas respostas discursivas...",
@@ -659,21 +821,32 @@ async function handleQuizSubmit(unit, course, questions) {
     learningContext: unit.content,
     discursiveAnswers: discAnswers,
   };
+  const langPrefs = getLangPrefs();
   let discResult = null;
+
   await processRequest("AVALIADOR_DISCURSIVO", {
     history: [{ role: "user", parts: [{ text: JSON.stringify(discPayload) }] }],
+    langPrefs,
     onSuccess: (data) => {
       discResult = data;
     },
   });
 
-  // Build final result
-  const mcScore =
-    mcQuestions.length > 0 ? (mcCorrect / mcQuestions.length) * 50 : 0; // MC = 50% of grade
-  const discScore = discResult ? discResult.totalDiscursiveScore : 0;
-  const maxDiscScore = discResult ? discResult.maxDiscursiveScore : 50;
-  const discPct = maxDiscScore > 0 ? (discScore / maxDiscScore) * 50 : 0; // Discursive = 50% of grade
-  const totalScore = Math.round(mcScore + discPct);
+  // Cálculo de notas: MC = 6 pts, Discursivas = 4 pts, média mínima = 7
+  const MC_WEIGHT = 6;
+  const DISC_WEIGHT = 4;
+  const PASS_THRESHOLD = 7;
+
+  const mcPoints =
+    mcQuestions.length > 0 ? (mcCorrect / mcQuestions.length) * MC_WEIGHT : 0;
+  const maxDiscRaw = discResult
+    ? discResult.maxDiscursiveScore
+    : discQuestions.length * 10;
+  const rawDiscScore = discResult ? discResult.totalDiscursiveScore : 0;
+  const discPoints =
+    maxDiscRaw > 0 ? (rawDiscScore / maxDiscRaw) * DISC_WEIGHT : 0;
+  const totalScore = parseFloat((mcPoints + discPoints).toFixed(2));
+  const passed = totalScore >= PASS_THRESHOLD;
 
   unit.result = {
     mcResults,
@@ -683,17 +856,19 @@ async function handleQuizSubmit(unit, course, questions) {
     discEvaluations: discResult ? discResult.evaluations : [],
     discOverallFeedback: discResult ? discResult.overallDiscursiveFeedback : "",
     totalScore,
-    mcScore: Math.round(mcScore * 2), // out of 100
-    discScore: Math.round(discPct * 2), // out of 100
-    passed: totalScore >= 60,
+    mcPoints: parseFloat(mcPoints.toFixed(2)),
+    discPoints: parseFloat(discPoints.toFixed(2)),
+    passed,
+    passThreshold: PASS_THRESHOLD,
   };
   unit.completed = true;
 
-  // Check if all units completed
+  // Limpa rascunho após concluir
+  unit.draftAnswers = {};
+
   const allDone = course.units.every((u) => u.completed);
   if (allDone) course.completed = true;
   saveState();
-
   renderSimuladoScreen();
 }
 
@@ -702,6 +877,23 @@ function renderResultView(unit, course) {
   const r = unit.result;
   const content = $("#sim-content");
   const passed = r.passed;
+  const threshold = r.passThreshold || 7;
+
+  // Compatibilidade com resultados antigos (formato 0-100)
+  let displayTotal, displayMC, displayDisc;
+  if (r.totalScore > 10) {
+    displayTotal = (r.totalScore / 10).toFixed(1);
+    displayMC = (
+      r.mcPoints !== undefined ? r.mcPoints : (r.mcScore / 100) * 6
+    ).toFixed(2);
+    displayDisc = (
+      r.discPoints !== undefined ? r.discPoints : (r.discScore / 100) * 4
+    ).toFixed(2);
+  } else {
+    displayTotal = r.totalScore !== undefined ? r.totalScore.toFixed(1) : "—";
+    displayMC = r.mcPoints !== undefined ? r.mcPoints.toFixed(2) : "—";
+    displayDisc = r.discPoints !== undefined ? r.discPoints.toFixed(2) : "—";
+  }
 
   let html = `
     <div class="sim-header">
@@ -709,20 +901,21 @@ function renderResultView(unit, course) {
       <h1 class="sim-title">Resultado: ${unit.title}</h1>
     </div>
     <div class="result-hero">
-      <div class="result-score ${passed ? "passed" : "failed"}">${r.totalScore}%</div>
+      <div class="result-score ${passed ? "passed" : "failed"}">${displayTotal}</div>
       <div class="result-label">${passed ? "🎉 Aprovado!" : "📚 Continue estudando"}</div>
-      <div class="result-sub">Nota mínima para aprovação: 60%</div>
+      <div class="result-sub">Média para aprovação: ${threshold} pontos &nbsp;|&nbsp; Escala: 0–10</div>
       <div class="result-stats">
-        <div class="result-stat"><div class="result-stat-val" style="color:var(--accent)">${r.mcCorrect}/${r.mcTotal}</div><div class="result-stat-lbl">Múltipla Escolha</div></div>
-        <div class="result-stat"><div class="result-stat-val" style="color:var(--accent2)">${r.discScore}%</div><div class="result-stat-lbl">Discursivas</div></div>
-        <div class="result-stat"><div class="result-stat-val" style="color:${passed ? "var(--accent3)" : "var(--danger)"}">${r.totalScore}%</div><div class="result-stat-lbl">Nota Final</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--accent)">${r.mcCorrect}/${r.mcTotal}</div><div class="result-stat-lbl">Acertos MC</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--accent)">${displayMC} pts</div><div class="result-stat-lbl">Pontos MC (max 6)</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:var(--accent2)">${displayDisc} pts</div><div class="result-stat-lbl">Pontos Disc. (max 4)</div></div>
+        <div class="result-stat"><div class="result-stat-val" style="color:${passed ? "var(--accent3)" : "var(--danger)"}">${displayTotal}</div><div class="result-stat-lbl">Nota Final (0–10)</div></div>
       </div>
     </div>`;
 
   // MC Review
   html += `<div class="unit-detail-card"><h3>Revisão — Múltipla Escolha</h3>`;
   const mcQuestions = unit.simulado.filter((q) => q.type === "multiple_choice");
-  mcQuestions.forEach((q, i) => {
+  mcQuestions.forEach((q) => {
     const res = r.mcResults.find((x) => x.questionId === q.id);
     const correct = res && res.correct;
     html += `
@@ -778,37 +971,65 @@ function renderResultView(unit, course) {
             ? "Parcial"
             : "Insuficiente"
         : "Aguardando";
+      const statusColor =
+        statusClass === "approved"
+          ? "rgba(52,211,153,.12)"
+          : statusClass === "partial"
+            ? "rgba(251,191,36,.12)"
+            : "rgba(248,113,113,.12)";
+      const statusTextColor =
+        statusClass === "approved"
+          ? "var(--accent3)"
+          : statusClass === "partial"
+            ? "var(--warning)"
+            : "var(--danger)";
+
+      let keyPointsHtml = "";
+      if (q.expectedKeyPoints && q.expectedKeyPoints.length > 0) {
+        const weights = q.keyPointWeights || [];
+        keyPointsHtml = `<div style="margin-top:0.6rem;padding:0.7rem 0.9rem;background:var(--surface3);border-radius:var(--radius);font-size:0.82rem;">
+          <strong style="color:var(--text-muted);font-size:0.75rem;text-transform:uppercase;letter-spacing:.05em;">Pontos-chave avaliados:</strong>
+          <ul style="margin:0.4rem 0 0 1rem;color:var(--text-muted);">
+            ${q.expectedKeyPoints
+              .map((kp, i) => {
+                const w = weights[i]
+                  ? `<span style="color:var(--accent);font-weight:700;">(peso: ${Math.round(weights[i] * 100)}%)</span>`
+                  : "";
+                return `<li>${kp} ${w}</li>`;
+              })
+              .join("")}
+          </ul>
+        </div>`;
+      }
+
       html += `
         <div class="question-card discursive" style="margin-top:1rem;">
           <div class="question-number">
             <span>Questão ${q.id}</span>
             <span class="q-type-badge q-type-disc">Discursiva</span>
-            ${ev ? `<span class="sim-badge ${statusClass === "approved" ? "green" : statusClass === "partial" ? "" : ""}" style="margin-left:auto;background:${statusClass === "approved" ? "rgba(52,211,153,.12)" : statusClass === "partial" ? "rgba(251,191,36,.12)" : "rgba(248,113,113,.12)"};color:${statusClass === "approved" ? "var(--accent3)" : statusClass === "partial" ? "var(--warning)" : "var(--danger)"};">${statusLabel} ${ev ? `(${ev.score}/${ev.maxScore})` : ""}</span>` : ""}
+            ${ev ? `<span class="sim-badge" style="margin-left:auto;background:${statusColor};color:${statusTextColor};">${statusLabel} (${ev.score}/${ev.maxScore})</span>` : ""}
           </div>
           <div class="question-text">${q.question}</div>
+          ${keyPointsHtml}
           ${ans ? `<div style="padding:0.9rem 1rem;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);font-size:0.88rem;margin-top:0.6rem;"><strong style="font-size:0.78rem;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);">Sua Resposta:</strong><br/><span style="color:var(--text);">${ans.studentAnswer || "<em>Não respondida</em>"}</span></div>` : ""}
           ${ev ? `<div class="discursive-result ${statusClass}"><span class="dr-label">${statusLabel}</span>${ev.feedback}</div>` : ""}
+          ${ev && ev.missingPoints && ev.missingPoints.length > 0 ? `<div style="margin-top:0.5rem;padding:0.6rem 0.9rem;background:rgba(248,113,113,0.07);border-radius:var(--radius);border-left:3px solid var(--danger);font-size:0.83rem;"><strong style="color:var(--danger);">Pontos que faltaram:</strong><ul style="margin:0.3rem 0 0 1rem;color:var(--text-muted);">${ev.missingPoints.map((p) => `<li>${p}</li>`).join("")}</ul></div>` : ""}
         </div>`;
     });
     html += `</div>`;
   }
 
-  // Actions
   html += `<div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:1rem;">`;
-  // Next unit
   const nextIdx = course.units.findIndex(
     (u, i) => i > appState.activeUnitIndex && !u.completed,
   );
-  if (nextIdx >= 0) {
+  if (nextIdx >= 0)
     html += `<button class="btn btn-primary" id="next-unit-btn">Próxima Unidade →</button>`;
-  }
-  if (course.completed && passed) {
+  if (course.completed && passed)
     html += `<button class="btn btn-success" id="show-cert-btn">🎓 Ver Certificado</button>`;
-  }
   html += `</div>`;
 
   content.innerHTML = html;
-
   const nextBtn = $("#next-unit-btn");
   if (nextBtn) nextBtn.onclick = () => selectUnit(nextIdx);
   const certBtn = $("#show-cert-btn");
@@ -893,12 +1114,16 @@ function downloadCertificate() {
 
 // ─── PROCESS REQUEST (API / MANUAL) ─────────────────────────────────────────
 async function processRequest(requestType, context) {
-  if (SHOW_SUPPORT && localStorage.getItem(API_MODE_KEY) === "true") {
+  const useApi = localStorage.getItem(API_MODE_KEY) === "true";
+
+  if (useApi) {
+    hideLoadingModal();
     showSupportModal();
     return;
   }
-  const useApi = localStorage.getItem(API_MODE_KEY) === "true";
-  const sysPrompt = PROMPTS[requestType];
+
+  const langPrefs = context.langPrefs || getLangPrefs();
+  const sysPrompt = getPrompt(requestType, langPrefs);
   const requestBody = {
     contents: context.history,
     systemInstruction: { parts: [{ text: sysPrompt }] },
@@ -908,33 +1133,43 @@ async function processRequest(requestType, context) {
       response_mime_type: "application/json",
     },
   };
-  showLoadingModal(PROMPT_TITLES[requestType]);
-  if (useApi) {
-    try {
-      const res = await fetch(API_BACK_END, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(requestBody),
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data?.[0]?.output) throw new Error("Resposta inesperada da API.");
-      const parsed = JSON.parse(data[0].output);
-      context.onSuccess(parsed);
-    } catch (err) {
-      console.error(err);
-      await showConfirmationModal(
-        "Erro na API",
-        `Ocorreu um erro: ${err.message}`,
-        { confirmText: "OK", showCancel: false },
-      );
-    } finally {
-      hideLoadingModal();
-    }
-  } else {
-    hideLoadingModal();
-    showPromptModal(PROMPT_TITLES[requestType], requestBody, context.onSuccess);
+
+  hideLoadingModal();
+
+  return new Promise((resolve) => {
+    // Registra o callback ÚNICO que faz tudo: executa onSuccess E resolve a Promise
+    onManualResponseSubmit = (data) => {
+      context.onSuccess(data);
+      _pendingPromptContext = null;
+      onManualResponseSubmit = null;
+      resolve();
+    };
+
+    _pendingPromptContext = { requestType, context, requestBody, resolve };
+
+    // Abre o modal SEM passar callback — o onManualResponseSubmit já está setado
+    _showPromptModalRaw(PROMPT_TITLES[requestType], requestBody);
+  });
+}
+
+function _showPromptModalRaw(title, requestBody) {
+  $("#prompt-modal-title").textContent = title;
+  $("#prompt-display").textContent = JSON.stringify(requestBody, null, 2);
+  $("#response-input").value = "";
+  $("#modal-error-message").classList.add("hidden");
+  $("#prompt-modal").classList.remove("hidden");
+}
+
+// Mantém o nome antigo como alias para compatibilidade com chamadas externas
+function showPromptModal(title, requestBody, callback) {
+  if (callback) {
+    onManualResponseSubmit = (data) => {
+      callback(data);
+      _pendingPromptContext = null;
+      onManualResponseSubmit = null;
+    };
   }
+  _showPromptModalRaw(title, requestBody);
 }
 
 // ─── MODALS ───────────────────────────────────────────────────────────────────
@@ -981,20 +1216,20 @@ function showConfirmationModal(title, message, options = {}) {
 }
 
 function showPromptModal(title, requestBody, callback) {
-  onManualResponseSubmit = callback;
+  onManualResponseSubmit = (data) => {
+    if (callback) callback(data);
+    _pendingPromptContext = null;
+  };
   $("#prompt-modal-title").textContent = title;
   $("#prompt-display").textContent = JSON.stringify(requestBody, null, 2);
   $("#response-input").value = "";
   $("#modal-error-message").classList.add("hidden");
   $("#prompt-modal").classList.remove("hidden");
-  const assistEnabled = localStorage.getItem(ASSISTANT_KEY) === "true";
-  if (window.innerWidth > 768 && assistEnabled)
-    $("#chatbot-container").classList.remove("hidden");
 }
 
 function hidePromptModal() {
   $("#prompt-modal").classList.add("hidden");
-  onManualResponseSubmit = null;
+  // Não limpa callbacks — permite reabrir o prompt ao clicar na unidade novamente
 }
 
 function showSupportModal() {
@@ -1051,7 +1286,7 @@ function setupEventListeners() {
 
   // Theme
   $("#theme-switch").addEventListener("change", (e) => {
-    const t = e.target.checked ? "light" : "dark";
+    const t = e.target.checked ? "dark" : "light";
     localStorage.setItem(THEME_KEY, t);
     applyTheme(t);
   });
@@ -1068,6 +1303,19 @@ function setupEventListeners() {
   $("#api-mode-switch-settings").addEventListener("change", (e) =>
     syncApi(e.target),
   );
+  // Language prefs sync
+  const syncLang = () => {
+    const tq = $("#lang-questions-switch");
+    const ta = $("#lang-answers-switch");
+    saveLangPrefs({
+      questionsInContentLang: tq ? tq.checked : true,
+      answersInContentLang: ta ? ta.checked : true,
+    });
+  };
+  const lq = $("#lang-questions-switch");
+  if (lq) lq.addEventListener("change", syncLang);
+  const la = $("#lang-answers-switch");
+  if (la) la.addEventListener("change", syncLang);
 
   // Zoom
   $("#zoom-in-btn").onclick = () => {
@@ -1078,11 +1326,6 @@ function setupEventListeners() {
     currentZoomLevel = Math.max(0.5, +(currentZoomLevel - 0.1).toFixed(1));
     applyZoom();
   };
-
-  // Assistant
-  $("#assistant-switch").addEventListener("change", (e) =>
-    localStorage.setItem(ASSISTANT_KEY, e.target.checked),
-  );
 
   // Change name
   $("#change-name-btn").onclick = () => {
@@ -1123,7 +1366,13 @@ function setupEventListeners() {
   };
 
   // Register modal
-  $("#open-register-btn").onclick = openRegisterModal;
+  $("#open-register-btn").onclick = () => {
+    if (localStorage.getItem(API_MODE_KEY) === "true") {
+      showSupportModal();
+      return;
+    }
+    openRegisterModal();
+  };
   $("#register-close-btn").onclick = () => {
     isSubmitting = false;
     $("#register-modal").classList.add("hidden");
@@ -1214,17 +1463,6 @@ function setupEventListeners() {
   $("#tutorial-prev-btn").onclick = () =>
     renderTutorialStep(Math.max(currentTutorialStep - 1, 0));
   $("#tutorial-finish-btn").onclick = closeTutorial;
-
-  // Chatbot
-  const chatToggle = $("#chatbot-toggle-btn");
-  const chatContainer = $("#chatbot-container");
-  const chatClose = $("#chatbot-close-btn");
-  if (chatToggle)
-    chatToggle.onclick = () => chatContainer.classList.toggle("hidden");
-  if (chatClose)
-    chatClose.onclick = () => {
-      chatContainer.classList.add("hidden");
-    };
 
   // Mobile sidebar
   $("#mobile-sidebar-toggle").onclick = () => {

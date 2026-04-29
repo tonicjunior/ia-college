@@ -25,7 +25,6 @@
         margin: 0;
         padding: 0;
       }
-
       :root {
         --bg: #0d0f14;
         --surface: #13161e;
@@ -48,6 +47,31 @@
         --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         --font: "Sora", sans-serif;
         --mono: "JetBrains Mono", monospace;
+
+        /* Novas variáveis para o design da página inicial */
+        --background: 214 30% 96%;
+        --foreground: 222 25% 10%;
+        --card: 0 0% 100%;
+        --primary: 250 84% 60%;
+        --accent-new: 280 90% 68%;
+        --muted: 216 35% 92%;
+        --muted-foreground: 220 10% 45%;
+        --border-new: 214 20% 85%;
+        --font-heading: "Poppins", sans-serif;
+        --font-body: "Inter", sans-serif;
+        --gradient-primary: linear-gradient(
+          135deg,
+          hsl(var(--primary)),
+          hsl(var(--accent-new))
+        );
+        --gradient-hero: linear-gradient(
+          135deg,
+          hsl(var(--primary)) 0%,
+          hsl(var(--accent-new)) 50%,
+          hsl(310 85% 70%) 100%
+        );
+        --shadow-lg: 0 20px 25px hsl(220 20% 50% / 0.1);
+        --shadow-glow: 0 0 40px hsl(var(--primary) / 0.3);
       }
 
       html.light {
@@ -67,6 +91,14 @@
         --danger: #dc2626;
         --warning: #d97706;
         --shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+
+        /* Novas variáveis modo claro */
+        --background: 0 0% 100%;
+        --foreground: 222 25% 10%;
+        --card: 0 0% 100%;
+        --muted: 216 35% 96%;
+        --muted-foreground: 220 10% 45%;
+        --border-new: 214 20% 90%;
       }
 
       body {
@@ -405,46 +437,283 @@
         color: var(--text-dim);
       }
 
-      /* ─── DASHBOARD ─────────────────────────────────────────────── */
-      #dashboard-section {
-        max-width: 1100px;
-        margin: 0 auto;
-        padding: 5rem 1.5rem 3rem;
+      .hero-section {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: var(--gradient-hero);
+        padding: 1.2rem 1rem;
+      }
+      .hero-bg {
+        position: absolute;
+        inset: 0;
+        background-image: url(assets/images/IA.png);
+        background-size: cover;
+        background-position: center;
+        opacity: 0.15;
+      }
+      .hero-content {
+        position: relative;
+        z-index: 10;
+        text-align: center;
+        max-width: 1200px;
+        padding: 2rem;
+      }
+      .hero-title {
+        font-family: var(--font-heading);
+        font-size: clamp(3rem, 8vw, 7rem);
+        font-weight: 700;
+        color: #fff;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.02em;
+      }
+      .hero-accent {
+        color: #372894d9;
+        text-shadow: 0 0 30px #4a2baf;
+      }
+      .hero-description {
+        font-size: clamp(1.125rem, 3vw, 1.5rem);
+        color: #ffffffe6;
+        margin-bottom: 3rem;
+        max-width: 48rem;
+        margin-inline: auto;
+      }
+      .features-icons {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        flex-wrap: wrap;
+      }
+      .feature-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .feature-icon {
+        width: 4rem;
+        height: 4rem;
+        border-radius: 1rem;
+        background-color: #ffffff1a;
+        backdrop-filter: blur(8px);
+        border: 1px solid #ffffff33;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+        transition: var(--transition);
+      }
+      .feature-icon svg {
+        color: #fff;
+        width: 32px;
+        height: 32px;
+      }
+      .feature-item span {
+        color: #ffffffcc;
+        font-size: 0.875rem;
+      }
+      .feature-item:hover .feature-icon {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-glow);
       }
 
-      .hero {
-        text-align: center;
-        margin-bottom: 3.5rem;
+      .main-content {
+        max-width: 1280px;
+        margin: 0 auto;
+        padding: 4rem 1rem;
       }
-      .hero-badge {
-        display: inline-flex;
+      .generator-card {
+        max-width: 64rem;
+        margin: 0 auto 3rem auto;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 1rem;
+        box-shadow: var(--shadow-lg);
+      }
+      .card-header {
+        text-align: center;
+        padding: 2rem 2rem 1rem;
+      }
+      .card-title {
+        font-family: var(--font-heading);
+        font-size: 1.8rem;
+        margin-bottom: 1rem;
+        color: var(--text);
+      }
+      .card-description {
+        font-size: 1rem;
+        color: var(--text-muted);
+      }
+      .mode-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--surface2);
+        border-radius: var(--radius);
+        margin-top: 1.5rem;
+      }
+      .mode-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        transition: color var(--transition);
+      }
+      .mode-label.active {
+        color: var(--accent);
+      }
+      .card-content {
+        padding: 0 2rem 2rem 2rem;
+      }
+
+      .btn-primary {
+        background: var(--gradient-primary) !important;
+      }
+
+      .generate-btn {
+        width: 100%;
+        height: 3.5rem;
+        background: var(--gradient-primary);
+        color: #fff;
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        justify-content: center;
         align-items: center;
         gap: 0.5rem;
-        background: var(--accent-glow);
-        border: 1px solid rgba(79, 142, 247, 0.3);
-        color: var(--accent);
-        font-size: 0.78rem;
-        font-weight: 600;
-        padding: 0.35rem 0.9rem;
-        border-radius: 99px;
-        margin-bottom: 1.2rem;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
+        transition: var(--transition);
       }
-      .hero h1 {
-        font-size: clamp(2rem, 5vw, 3.2rem);
-        font-weight: 800;
-        line-height: 1.15;
+      .generate-btn:hover {
+        transform: scale(1.02);
+        box-shadow: var(--shadow-glow);
+      }
+      .btn-icon {
+        width: 20px;
+        height: 20px;
+      }
+      .courses-section {
+        margin-top: 2rem;
+      }
+      .courses-section h2 {
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .courses-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+        gap: 1.2rem;
+      }
+      .course-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all var(--transition);
+        position: relative;
+        overflow: hidden;
+      }
+      .course-card::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.3s;
+      }
+      .course-card:hover {
+        border-color: var(--border-bright);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow);
+      }
+      .course-card:hover::before {
+        transform: scaleX(1);
+      }
+      .course-card-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
         margin-bottom: 0.8rem;
       }
-      .hero h1 span {
-        color: var(--accent);
+      .course-card-title {
+        font-size: 1rem;
+        font-weight: 700;
+        line-height: 1.3;
       }
-      .hero p {
+      .course-card-discipline {
+        font-size: 0.8rem;
+        color: var(--accent2);
+        font-weight: 600;
+        background: rgba(167, 139, 250, 0.1);
+        padding: 0.2rem 0.6rem;
+        border-radius: 99px;
+        white-space: nowrap;
+      }
+      .course-card-stats {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1rem;
+      }
+      .stat-chip {
+        font-size: 0.78rem;
         color: var(--text-muted);
-        font-size: 1.05rem;
-        max-width: 540px;
-        margin: 0 auto;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+      }
+      .progress-bar {
+        width: 100%;
+        height: 6px;
+        background: var(--surface3);
+        border-radius: 99px;
+        overflow: hidden;
+      }
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, var(--accent), var(--accent2));
+        border-radius: 99px;
+        transition: width 0.5s;
+      }
+      .progress-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.4rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+      }
+      .course-card-footer {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+      }
+      .delete-course-btn {
+        background: none;
+        border: 1px solid rgba(248, 113, 113, 0.2);
+        color: var(--danger);
+        padding: 0.4rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all var(--transition);
+        display: flex;
+        align-items: center;
+        flex-shrink: 0;
+        justify-content: center;
+      }
+      .delete-course-btn:hover {
+        background: rgba(248, 113, 113, 0.1);
       }
 
       /* Add Course Card */
@@ -603,6 +872,7 @@
         display: flex;
         align-items: center;
         flex-shrink: 0;
+        width: 40px;
       }
       .delete-course-btn:hover {
         background: rgba(248, 113, 113, 0.1);
@@ -1177,194 +1447,192 @@
         background: rgba(248, 113, 113, 0.22);
       }
 
-      /* ─── CERTIFICATE ───────────────────────────────────────────── */
-      #certificate-preview-modal .modal-box {
-        max-width: 860px;
-      }
       #certificado-container-render {
-        width: 820px;
-        height: 540px;
-        background: linear-gradient(135deg, #0a0d14 0%, #111827 100%);
+        width: 900px;
+        height: 636px;
+        color: #e1e1e6;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+        padding: 40px;
         position: relative;
         display: flex;
         flex-direction: column;
-        align-items: center;
         justify-content: center;
-        font-family: "Sora", sans-serif;
-        border: 1px solid #2a3050;
-        overflow: hidden;
-        flex-shrink: 0;
+        box-sizing: border-box;
+        border: 1px solid #261a49;
+        background-color: #080814;
+        font-family: "Manrope", sans-serif;
+        background-image: radial-gradient(
+          circle at 10% 20%,
+          #080814,
+          #1d113f 80%
+        );
       }
+
       #certificado-container-render::before {
         content: "";
         position: absolute;
-        inset: 12px;
-        border: 1px solid rgba(79, 142, 247, 0.2);
-        border-radius: 8px;
-        pointer-events: none;
-      }
-      .cert-bg-glow {
-        position: absolute;
-        inset: 0;
-        background:
-          radial-gradient(
-            ellipse at 30% 50%,
-            rgba(79, 142, 247, 0.08) 0%,
-            transparent 60%
-          ),
-          radial-gradient(
-            ellipse at 70% 50%,
-            rgba(167, 139, 250, 0.06) 0%,
-            transparent 60%
-          );
-      }
-      .certificado-title-render {
-        font-size: 1.6rem;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        z-index: 1;
-      }
-      .certificado-title-render span {
-        color: #4f8ef7;
-      }
-      .cert-divider {
-        width: 60px;
-        height: 2px;
-        background: linear-gradient(90deg, #4f8ef7, #a78bfa);
-        margin: 0.6rem auto;
-        z-index: 1;
-        border-radius: 99px;
-      }
-      .certificado-main-render {
-        text-align: center;
-        z-index: 1;
-        margin: 1rem 0;
-      }
-      .titulo-certificado {
-        font-size: 0.7rem;
-        letter-spacing: 0.2em;
-        text-transform: uppercase;
-        color: #8892b0;
-        margin-bottom: 1rem;
-      }
-      .texto-confirmacao-render {
-        font-size: 0.85rem;
-        color: #8892b0;
-        margin-bottom: 0.3rem;
-      }
-      #nome-aluno-render {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #e8ecf5;
-        margin-bottom: 0.5rem;
-      }
-      .texto-conclusao-render {
-        font-size: 0.85rem;
-        color: #8892b0;
-        margin-bottom: 0.3rem;
-      }
-      #nome-curso-render {
-        font-size: 1rem;
-        font-weight: 600;
-        color: #4f8ef7;
-        max-width: 500px;
-        text-align: center;
-      }
-      .certificado-footer-render {
-        position: absolute;
-        bottom: 2rem;
-        left: 50%;
-        transform: translateX(-50%);
-        text-align: center;
-        z-index: 1;
-        white-space: nowrap;
-      }
-      #data-emissao-render {
-        font-size: 0.75rem;
-        color: #4a5270;
-      }
-      .assinatura-block-render {
-        margin-top: 0.5rem;
-      }
-      .assinatura-svg-render {
-        height: 30px;
-        opacity: 0.7;
-      }
-      .linha-assinatura-render {
-        border: none;
-        border-top: 1px solid #2a3050;
-        margin: 0.3rem 0;
-      }
-      .assinatura-block-render p {
-        font-size: 0.68rem;
-        color: #4a5270;
-      }
-
-      /* ─── CHATBOT ───────────────────────────────────────────────── */
-      .chatbot-container {
-        position: fixed;
-        bottom: 5rem;
-        right: 1rem;
-        z-index: 300;
-        width: 380px;
-        height: 500px;
-        background: var(--surface);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: var(--shadow);
-      }
-      .chatbot-header {
-        padding: 1rem;
-        border-bottom: 1px solid var(--border);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-      }
-      .chatbot-header h3 {
-        font-size: 0.9rem;
-        font-weight: 700;
-      }
-      .chatbot-close-btn {
-        background: none;
-        border: none;
-        color: var(--text-muted);
-        font-size: 1.2rem;
-        cursor: pointer;
-      }
-      .chatbot-body {
-        flex: 1;
-      }
-      .chatbot-iframe {
+        top: 0;
+        left: 20;
         width: 100%;
         height: 100%;
-        border: none;
+        background-image:
+          url("assets/images/placa-de.png"),
+          radial-gradient(
+            circle at 10% 20%,
+            rgba(8, 8, 20, 0.15),
+            rgba(29, 17, 63, 0.15) 80%
+          );
+        background-repeat: no-repeat;
+        background-position: center;
+        background-size: contain;
+        opacity: 0.04;
+        z-index: 0;
       }
-      .chatbot-toggle-btn {
-        position: fixed;
-        bottom: 1.5rem;
-        right: 1rem;
-        z-index: 300;
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        background: var(--accent);
-        border: none;
-        cursor: pointer;
+
+      /* Título e Identidade Visual */
+      .certificado-title-render {
+        position: absolute;
+        top: 35px;
+        left: 40px;
+        margin: 0;
+        font-weight: 800;
+        color: #0ad8e1;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+
+      .hero-accent-render {
+        color: #fff;
+        text-shadow:
+          0 0 7px rgba(153, 109, 255, 0.8),
+          0 0 10px rgba(153, 109, 255, 0.6),
+          0 0 20px rgba(255, 255, 255, 0.7);
+      }
+
+      /* Conteúdo Central */
+      .certificado-main-render {
+        text-align: center;
         display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 4px 20px rgba(79, 142, 247, 0.4);
-        transition: all var(--transition);
+        flex-direction: column;
+        flex-grow: 1;
+        max-height: calc(100% - 140px);
+        gap: 10px;
+        padding-bottom: 110px;
       }
-      .chatbot-toggle-btn:hover {
-        transform: scale(1.1);
+
+      .certificado-main-render h2,
+      .titulo-certificado {
+        text-transform: uppercase;
+        font-size: 28px;
+        color: #e1e1e6;
+        font-weight: 700;
+        padding-top: 10px;
       }
-      .chatbot-toggle-btn svg {
-        width: 26px;
-        height: 26px;
+
+      .texto-confirmacao-render,
+      .texto-conclusao-render {
+        font-size: 15px;
+        color: #5eedf2;
+        text-transform: uppercase;
+        margin: 0;
+      }
+
+      #nome-aluno-render {
+        font-size: 40px;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: 0.34px;
+        line-height: 1.2;
+        text-transform: uppercase;
+        padding: 5px 0;
+      }
+
+      #nome-curso-render {
+        font-size: 22px;
+        font-weight: 400;
+        color: #e1e1e6;
+        margin: 5px 0 0 0;
+      }
+
+      /* Rodapé e Assinatura */
+      .certificado-footer-render {
+        width: 100%;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        padding: 18px 40px;
+        box-sizing: border-box;
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        border-top: 1px solid #323238;
+        color: #a8a8b3;
+      }
+
+      .assinatura-block-render {
+        text-align: center;
+      }
+
+      .assinatura-svg-render {
+        width: 160px;
+        height: 80px;
+        margin-bottom: -25px;
+      }
+
+      .assinatura-block-render p {
+        margin-top: 10px;
+        font-size: 12px;
+        color: #e1e1e6;
+      }
+
+      .linha-assinatura-render {
+        border: 0;
+        border-top: 1px solid #34343a;
+        width: 100%;
+        margin: 0 auto;
+      }
+
+      /* Responsividade do Preview */
+      @media (max-width: 900px) {
+        #certificado-container-render {
+          transform: scale(0.8);
+        }
+      }
+      @media (max-width: 768px) {
+        #certificado-container-render {
+          transform: scale(0.6);
+        }
+      }
+      @media (max-width: 500px) {
+        #certificado-container-render {
+          transform: scale(0.4);
+        }
+      }
+
+      /* Configurações de Impressão */
+      @media print {
+        body > *:not(#certificate-preview-modal) {
+          display: none;
+        }
+        #certificate-preview-modal {
+          position: absolute;
+          top: 0;
+          left: 0;
+          width: 100%;
+          height: 100%;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+        }
+        #certificado-container-render {
+          width: 28cm;
+          height: 19.8cm;
+          transform: scale(1) !important;
+          box-shadow: none;
+          border: 1px solid #323238;
+        }
       }
 
       /* ─── TUTORIAL MODAL ────────────────────────────────────────── */
@@ -1598,10 +1866,6 @@
         .sim-main {
           padding: 1rem;
         }
-        .chatbot-container {
-          width: calc(100vw - 2rem);
-          height: 70vh;
-        }
         #settings-modal .modal-box {
           width: calc(100vw - 2rem);
           right: 0;
@@ -1614,14 +1878,20 @@
           transform-origin: top left;
         }
       }
+      .slidebar-m-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        align-content: center;
+      }
     </style>
   </head>
   <body>
     <!-- Settings Button -->
     <button id="settings-btn" title="Configurações">
       <svg
-        width="20"
-        height="20"
+        width="24px"
+        height="24px"
         viewBox="0 0 28 28"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
@@ -1631,13 +1901,13 @@
           d="M14 20C17.3137 20 20 17.3137 20 14C20 10.6863 17.3137 8 14 8C10.6863 8 8 10.6863 8 14C8 17.3137 10.6863 20 14 20ZM18 14C18 16.2091 16.2091 18 14 18C11.7909 18 10 16.2091 10 14C10 11.7909 11.7909 10 14 10C16.2091 10 18 11.7909 18 14Z"
           fill="currentColor"
           fill-rule="evenodd"
-        />
+        ></path>
         <path
           clip-rule="evenodd"
-          d="M0 12.9996V14.9996C0 16.5478 1.17261 17.822 2.67809 17.9826C2.80588 18.3459 2.95062 18.7011 3.11133 19.0473C2.12484 20.226 2.18536 21.984 3.29291 23.0916L4.70712 24.5058C5.78946 25.5881 7.49305 25.6706 8.67003 24.7531C9.1044 24.9688 9.55383 25.159 10.0163 25.3218C10.1769 26.8273 11.4511 28 12.9993 28H14.9993C16.5471 28 17.8211 26.8279 17.9821 25.3228C18.4024 25.175 18.8119 25.0046 19.2091 24.8129C20.3823 25.6664 22.0344 25.564 23.0926 24.5058L24.5068 23.0916C25.565 22.0334 25.6674 20.3813 24.814 19.2081C25.0054 18.8113 25.1757 18.4023 25.3234 17.9824C26.8282 17.8211 28 16.5472 28 14.9996V12.9996C28 11.452 26.8282 10.1782 25.3234 10.0169C25.1605 9.55375 24.9701 9.10374 24.7541 8.66883C25.6708 7.49189 25.5882 5.78888 24.5061 4.70681L23.0919 3.29259C21.9846 2.18531 20.2271 2.12455 19.0485 3.1103C18.7017 2.94935 18.3459 2.80441 17.982 2.67647C17.8207 1.17177 16.5468 0 14.9993 0H12.9993C11.4514 0 10.1773 1.17231 10.0164 2.6775C9.60779 2.8213 9.20936 2.98653 8.82251 3.17181C7.64444 2.12251 5.83764 2.16276 4.70782 3.29259L3.2936 4.7068C2.16377 5.83664 2.12352 7.64345 3.17285 8.82152C2.98737 9.20877 2.82199 9.60763 2.67809 10.0167C1.17261 10.1773 0 11.4515 0 12.9996Z"
+          d="M0 12.9996V14.9996C0 16.5478 1.17261 17.822 2.67809 17.9826C2.80588 18.3459 2.95062 18.7011 3.11133 19.0473C2.12484 20.226 2.18536 21.984 3.29291 23.0916L4.70712 24.5058C5.78946 25.5881 7.49305 25.6706 8.67003 24.7531C9.1044 24.9688 9.55383 25.159 10.0163 25.3218C10.1769 26.8273 11.4511 28 12.9993 28H14.9993C16.5471 28 17.8211 26.8279 17.9821 25.3228C18.4024 25.175 18.8119 25.0046 19.2091 24.8129C20.3823 25.6664 22.0344 25.564 23.0926 24.5058L24.5068 23.0916C25.565 22.0334 25.6674 20.3813 24.814 19.2081C25.0054 18.8113 25.1757 18.4023 25.3234 17.9824C26.8282 17.8211 28 16.5472 28 14.9996V12.9996C28 11.452 26.8282 10.1782 25.3234 10.0169C25.1605 9.55375 24.9701 9.10374 24.7541 8.66883C25.6708 7.49189 25.5882 5.78888 24.5061 4.70681L23.0919 3.29259C21.9846 2.18531 20.2271 2.12455 19.0485 3.1103C18.7017 2.94935 18.3459 2.80441 17.982 2.67647C17.8207 1.17177 16.5468 0 14.9993 0H12.9993C11.4514 0 10.1773 1.17231 10.0164 2.6775C9.60779 2.8213 9.20936 2.98653 8.82251 3.17181C7.64444 2.12251 5.83764 2.16276 4.70782 3.29259L3.2936 4.7068C2.16377 5.83664 2.12352 7.64345 3.17285 8.82152C2.98737 9.20877 2.82199 9.60763 2.67809 10.0167C1.17261 10.1773 0 11.4515 0 12.9996ZM15.9993 3C15.9993 2.44772 15.5516 2 14.9993 2H12.9993C12.447 2 11.9993 2.44772 11.9993 3V3.38269C11.9993 3.85823 11.6626 4.26276 11.2059 4.39542C10.4966 4.60148 9.81974 4.88401 9.18495 5.23348C8.76836 5.46282 8.24425 5.41481 7.90799 5.07855L7.53624 4.70681C7.14572 4.31628 6.51256 4.31628 6.12203 4.7068L4.70782 6.12102C4.31729 6.51154 4.31729 7.14471 4.70782 7.53523L5.07958 7.90699C5.41584 8.24325 5.46385 8.76736 5.23451 9.18395C4.88485 9.8191 4.6022 10.4963 4.39611 11.2061C4.2635 11.6629 3.85894 11.9996 3.38334 11.9996H3C2.44772 11.9996 2 12.4474 2 12.9996V14.9996C2 15.5519 2.44772 15.9996 3 15.9996H3.38334C3.85894 15.9996 4.26349 16.3364 4.39611 16.7931C4.58954 17.4594 4.85042 18.0969 5.17085 18.6979C5.39202 19.1127 5.34095 19.6293 5.00855 19.9617L4.70712 20.2632C4.3166 20.6537 4.3166 21.2868 4.70712 21.6774L6.12134 23.0916C6.51186 23.4821 7.14503 23.4821 7.53555 23.0916L7.77887 22.8483C8.11899 22.5081 8.65055 22.4633 9.06879 22.7008C9.73695 23.0804 10.4531 23.3852 11.2059 23.6039C11.6626 23.7365 11.9993 24.1411 11.9993 24.6166V25C11.9993 25.5523 12.447 26 12.9993 26H14.9993C15.5516 26 15.9993 25.5523 15.9993 25V24.6174C15.9993 24.1418 16.3361 23.7372 16.7929 23.6046C17.5032 23.3985 18.1809 23.1157 18.8164 22.7658C19.233 22.5365 19.7571 22.5845 20.0934 22.9208L20.2642 23.0916C20.6547 23.4821 21.2879 23.4821 21.6784 23.0916L23.0926 21.6774C23.4831 21.2868 23.4831 20.6537 23.0926 20.2632L22.9218 20.0924C22.5855 19.7561 22.5375 19.232 22.7669 18.8154C23.1166 18.1802 23.3992 17.503 23.6053 16.7931C23.7379 16.3364 24.1425 15.9996 24.6181 15.9996H25C25.5523 15.9996 26 15.5519 26 14.9996V12.9996C26 12.4474 25.5523 11.9996 25 11.9996H24.6181C24.1425 11.9996 23.7379 11.6629 23.6053 11.2061C23.3866 10.4529 23.0817 9.73627 22.7019 9.06773C22.4643 8.64949 22.5092 8.11793 22.8493 7.77781L23.0919 7.53523C23.4824 7.14471 23.4824 6.51154 23.0919 6.12102L21.6777 4.7068C21.2872 4.31628 20.654 4.31628 20.2635 4.7068L19.9628 5.00748C19.6304 5.33988 19.1137 5.39096 18.6989 5.16979C18.0976 4.84915 17.4596 4.58815 16.7929 4.39467C16.3361 4.2621 15.9993 3.85752 15.9993 3.38187V3Z"
           fill="currentColor"
           fill-rule="evenodd"
-        />
+        ></path>
       </svg>
     </button>
 
@@ -1679,20 +1949,28 @@
             ></label>
           </div>
           <div class="setting-item">
+            <label style="flex: 1">Perguntas no idioma do conteúdo</label>
+            <label class="switch"
+              ><input type="checkbox" id="lang-questions-switch" checked /><span
+                class="slider"
+              ></span
+            ></label>
+          </div>
+          <div class="setting-item">
+            <label style="flex: 1">Respostas disc. no idioma do conteúdo</label>
+            <label class="switch"
+              ><input type="checkbox" id="lang-answers-switch" checked /><span
+                class="slider"
+              ></span
+            ></label>
+          </div>
+          <div class="setting-item">
             <label>Zoom da Tela</label>
             <div class="zoom-controls">
               <button id="zoom-out-btn" class="zoom-btn">−</button>
               <span id="zoom-level-display">100%</span>
               <button id="zoom-in-btn" class="zoom-btn">+</button>
             </div>
-          </div>
-          <div class="setting-item">
-            <label>Assistente IA Externo</label>
-            <label class="switch"
-              ><input type="checkbox" id="assistant-switch" /><span
-                class="slider"
-              ></span
-            ></label>
           </div>
           <div class="setting-item">
             <label>Nome no Certificado</label>
@@ -1720,67 +1998,129 @@
 
     <!-- ── DASHBOARD ──────────────────────────────────────────────── -->
     <div id="dashboard-section" class="screen">
-      <div class="hero">
-        <div class="hero-badge">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
-            <circle cx="12" cy="12" r="10" />
-          </svg>
-          Simulados EAD com IA
+      <section class="hero-section">
+        <div class="hero-bg"></div>
+        <div class="hero-content">
+          <h1 class="hero-title">
+            IA<span class="hero-accent">.Academy</span>
+          </h1>
+          <p class="hero-description">
+            Cadastre suas disciplinas, cole os conteúdos das unidades e gere
+            simulados completos com gabarito automático.
+          </p>
+          <div class="features-icons">
+            <div class="feature-item">
+              <div class="feature-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                  <path d="M6 12v5c3 3 9 3 12 0v-5" />
+                </svg>
+              </div>
+              <span>Personalizado</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <svg
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"
+                  />
+                  <path
+                    d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"
+                  />
+                </svg>
+              </div>
+              <span>Focado</span>
+            </div>
+            <div class="feature-item">
+              <div class="feature-icon">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
+              </div>
+              <span>Rápido</span>
+            </div>
+          </div>
         </div>
-        <h1>IA<span>.Academy</span> EAD</h1>
-        <p>
-          Cadastre suas disciplinas, cole os conteúdos das unidades e gere
-          simulados completos com gabarito automático.
-        </p>
-      </div>
-
-      <div class="add-course-card">
-        <h2>Cadastrar Nova Disciplina</h2>
-        <p>
-          Informe o nome do curso, quantidade de unidades e o conteúdo de cada
-          unidade para gerar os simulados.
-        </p>
-        <div class="mode-toggle-row">
-          <span class="mode-label active" id="mode-label-manual"
-            >Modo Manual</span
-          >
-          <label class="switch"
-            ><input type="checkbox" id="api-mode-toggle" /><span
-              class="slider"
-            ></span
-          ></label>
-          <span class="mode-label" id="mode-label-api">Modo API</span>
+      </section>
+      <section class="main-content">
+        <div class="generator-card">
+          <div class="card-header">
+            <h2 class="card-title">Qual trilha você quer criar hoje?</h2>
+            <p class="card-description">
+              Digite o tema abaixo e deixe nossa IA criar um plano de
+              aprendizado personalizado
+            </p>
+            <div class="mode-toggle">
+              <span class="mode-label active" id="mode-label-manual"
+                >Modo Manual</span
+              >
+              <label class="switch">
+                <input type="checkbox" id="api-mode-toggle" />
+                <span class="slider"></span>
+              </label>
+              <span class="mode-label" id="mode-label-api">Modo API</span>
+            </div>
+          </div>
+          <div class="card-content">
+            <button id="open-register-btn" class="generate-btn">
+              <svg
+                class="btn-icon"
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path
+                  d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.582a.5.5 0 0 1 0 .962L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"
+                />
+              </svg>
+              Gerar Trilha
+            </button>
+          </div>
         </div>
-        <button class="btn btn-primary" id="open-register-btn">
-          <svg
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2.5"
-          >
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <line x1="5" y1="12" x2="19" y2="12" />
-          </svg>
-          Cadastrar Disciplina
-        </button>
-      </div>
 
-      <div id="courses-wrapper" class="courses-section hidden">
-        <h2>
-          Minhas Disciplinas
-          <span
-            id="courses-count"
-            style="
-              font-size: 0.8rem;
-              color: var(--text-muted);
-              font-weight: 400;
-            "
-          ></span>
-        </h2>
-        <div id="courses-container" class="courses-grid"></div>
-      </div>
+        <!-- Lista de disciplinas (cursos) -->
+        <div id="courses-wrapper" class="courses-section hidden">
+          <h2>
+            Minhas Disciplinas
+            <span
+              id="courses-count"
+              style="
+                font-size: 0.8rem;
+                color: var(--text-muted);
+                font-weight: 400;
+              "
+            ></span>
+          </h2>
+          <div id="courses-container" class="courses-grid"></div>
+        </div>
+      </section>
     </div>
 
     <!-- ── SIMULADO SCREEN ────────────────────────────────────────── -->
@@ -1809,32 +2149,34 @@
 
       <aside id="sim-sidebar" class="sim-sidebar">
         <div class="sim-sidebar-header">
-          <button id="back-to-dashboard" class="back-btn">
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <path d="M19 12H5M12 19l-7-7 7-7" />
-            </svg>
-            Dashboard
-          </button>
-          <button id="close-sidebar" class="close-sidebar-btn">
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-            >
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
+          <div class="slidebar-m-header">
+            <button id="back-to-dashboard" class="back-btn">
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path d="M19 12H5M12 19l-7-7 7-7" />
+              </svg>
+              Dashboard
+            </button>
+            <button id="close-sidebar" class="close-sidebar-btn">
+              <svg
+                width="18"
+                height="18"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
           <div>
             <div class="sim-sidebar-title" id="sidebar-course-title"></div>
             <div
@@ -2017,8 +2359,7 @@
           &times;
         </button>
         <h2>Certificado de Conclusão</h2>
-        <div style="overflow: auto; margin-bottom: 1rem">
-          <div id="certificado-container-render" style="margin: 0 auto">
+        <div id="certificado-container-render" style="position:absolute;left:-9999px;top:-9999px;pointer-events:none;">
             <div class="cert-bg-glow"></div>
             <div class="certificado-title-render">IA<span>.Academy</span></div>
             <div class="cert-divider"></div>
@@ -2042,9 +2383,8 @@
                 <p>IA.Academy — Simulados EAD com Inteligência Artificial</p>
               </div>
             </footer>
-          </div>
         </div>
-        <div id="div-preview-certificado" style="margin-top: 1rem"></div>
+        <div id="div-preview-certificado" style="margin-top: 1rem; overflow: auto;"></div>
         <div class="modal-actions" style="justify-content: center">
           <button id="download-certificate-btn" class="btn btn-primary">
             Baixar Certificado
@@ -2131,36 +2471,6 @@
         </div>
       </div>
     </div>
-
-    <!-- Chatbot -->
-    <div id="chatbot-container" class="chatbot-container hidden">
-      <div class="chatbot-header">
-        <h3>Assistente IA Externo</h3>
-        <button id="chatbot-close-btn" class="chatbot-close-btn">
-          &times;
-        </button>
-      </div>
-      <div class="chatbot-body">
-        <iframe
-          src="https://chat.deepseek.com"
-          class="chatbot-iframe"
-          title="Chatbot IA"
-        ></iframe>
-      </div>
-    </div>
-    <button
-      id="chatbot-toggle-btn"
-      class="chatbot-toggle-btn"
-      title="Abrir assistente IA"
-    >
-      <svg viewBox="0 0 30 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path
-          d="M27.501 8.46875C27.249 8.3457 27.1406 8.58008 26.9932 8.69922C26.9434 8.73828 26.9004 8.78906 26.8584 8.83398C26.4902 9.22852 26.0605 9.48633 25.5 9.45508C24.6787 9.41016 23.9785 9.66797 23.3594 10.2969C23.2275 9.52148 22.79 9.05859 22.125 8.76172C21.7764 8.60742 21.4238 8.45312 21.1807 8.11719C21.0098 7.87891 20.9639 7.61328 20.8779 7.35156C20.8242 7.19336 20.7695 7.03125 20.5879 7.00391C20.3906 6.97266 20.3135 7.13867 20.2363 7.27734C19.9258 7.84375 19.8066 8.46875 19.8174 9.10156C19.8447 10.5234 20.4453 11.6562 21.6367 12.4629C21.7725 12.5547 21.8076 12.6484 21.7646 12.7832C21.6836 13.0605 21.5869 13.3301 21.501 13.6074C21.4473 13.7852 21.3662 13.8242 21.1768 13.7461C20.5225 13.4727 19.957 13.0684 19.458 12.5781C18.6104 11.7578 17.8438 10.8516 16.8877 10.1426C16.6631 9.97656 16.4395 9.82227 16.207 9.67578C15.2314 8.72656 16.335 7.94727 16.5898 7.85547C16.8574 7.75977 16.6826 7.42773 15.8193 7.43164C14.957 7.43555 14.167 7.72461 13.1611 8.10938C13.0137 8.16797 12.8594 8.21094 12.7002 8.24414C11.7871 8.07227 10.8389 8.0332 9.84766 8.14453C7.98242 8.35352 6.49219 9.23633 5.39648 10.7441C4.08105 12.5547 3.77148 14.6133 4.15039 16.7617C4.54883 19.0234 5.70215 20.8984 7.47559 22.3633C9.31348 23.8809 11.4307 24.625 13.8457 24.4824C15.3125 24.3984 16.9463 24.2012 18.7881 22.6406C19.2529 22.8711 19.7402 22.9629 20.5498 23.0332C21.1729 23.0918 21.7725 23.002 22.2373 22.9062C22.9648 22.752 22.9141 22.0781 22.6514 21.9531C20.5186 20.959 20.9863 21.3633 20.5605 21.0371C21.6445 19.752 23.2783 18.418 23.917 14.0977C23.9668 13.7539 23.9238 13.5391 23.917 13.2598C23.9131 13.0918 23.9512 13.0254 24.1445 13.0059C24.6787 12.9453 25.1973 12.7988 25.6738 12.5352C27.0557 11.7793 27.6123 10.5391 27.7441 9.05078C27.7637 8.82422 27.7402 8.58789 27.501 8.46875Z"
-          fill="#ffffff"
-          fill-rule="nonzero"
-        />
-      </svg>
-    </button>
 
     <script src="script.js"></script>
   </body>
