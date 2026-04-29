@@ -1,6 +1,7 @@
 # 🎓 IA.Academy
 
 > Um sistema de aprendizado dinâmico e totalmente front-end que transforma qualquer tema em uma trilha de estudos interativa — gerada por Inteligência Artificial.
+[tonicjunior.github.io/ia-college/](http://tonicjunior.github.io/ia-college/)
 
 ---
 
